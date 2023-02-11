@@ -22,8 +22,18 @@ namespace CGL {
     // NOTE: You are not required to implement proper supersampling for points and lines
     // It is sufficient to use the same color for all supersamples of a pixel for points and lines (not triangles)
 
+    if (x < 0 || x >= width) return;
+    if (y < 0 || y >= height) return;
 
-    sample_buffer[y * width + x] = c;
+    int fbx = floor(x);
+    int fby = floor(y);
+    float offset = 1 / (2 * sqrt(get_sample_rate()));
+    int pixelwidth = floor(sqrt(get_sample_rate()));
+
+    int pixelx = floor((x - fbx - offset) * pixelwidth);
+    int pixely = floor((y - fby - offset) * pixelwidth);
+
+    sample_buffer[(fby * width + fbx)*get_sample_rate() + (pixely*pixelwidth) + pixelx] = c;
   }
 
   // Rasterize a point: simple example to help you start familiarizing
@@ -76,17 +86,21 @@ namespace CGL {
       float miny = min(y0, min(y1, y2));
       float maxy = max(y0, max(y1, y2));
 
-      for (int x = minx+0.5; x < maxx; x++) {
-          for (int y = miny+0.5; y < maxy; y++) {
+      float offset = 1 / (2 * sqrt(get_sample_rate()));
+      float tick = 2 * offset;
+
+      for (float x = minx+offset; x < maxx; x+=tick) {
+          for (float y = miny+offset; y < maxy; y+=tick) {
+
               float flag1 = (-(x - x0) * (y1 - y0) + (y - y0) * (x1 - x0));
               float flag2 = (-(x - x1) * (y2 - y1) + (y - y1) * (x2 - x1));
               float flag3 = (-(x - x2) * (y0 - y2) + (y - y2) * (x0 - x2));
 
               if (flag1 >= 0 && flag2 >= 0 && flag3 >= 0) {
-                  rasterize_point(x, y, color);
+                  fill_pixel(x, y, color);
               }
               else if (flag1 <= 0 && flag2 <= 0 && flag3 <= 0) {
-                  rasterize_point(x, y, color);
+                  fill_pixel(x, y, color);
               }
           }
       }
@@ -130,7 +144,7 @@ namespace CGL {
     this->sample_rate = rate;
 
 
-    this->sample_buffer.resize(width * height, Color::White);
+    this->sample_buffer.resize(width * height * rate, Color::White);
   }
 
 
@@ -161,18 +175,26 @@ namespace CGL {
   //
   void RasterizerImp::resolve_to_framebuffer() {
     // TODO: Task 2: You will likely want to update this function for supersampling support
+    
+      for (int x = 0; x < width; ++x) {
+          for (int y = 0; y < height; ++y) {
 
+              int pixelbegin = (y * width + x) * get_sample_rate();
 
-    for (int x = 0; x < width; ++x) {
-      for (int y = 0; y < height; ++y) {
-        Color col = sample_buffer[y * width + x];
+              Color total = Color::Black;
 
-        for (int k = 0; k < 3; ++k) {
-          this->rgb_framebuffer_target[3 * (y * width + x) + k] = (&col.r)[k] * 255;
-        }
+              for (int i = pixelbegin; i < pixelbegin + get_sample_rate(); i++) {
+                  total += sample_buffer[i];
+              }
+
+              Color average = total * (1.0 / (get_sample_rate()));
+              Color col = average;// sample_buffer[(y * width + x) * get_sample_rate()];
+
+              for (int k = 0; k < 3; ++k) {
+                  this->rgb_framebuffer_target[3 * (y * width + x) + k] = (&col.r)[k] * 255;
+              }
+          }
       }
-    }
-
   }
 
   Rasterizer::~Rasterizer() { }

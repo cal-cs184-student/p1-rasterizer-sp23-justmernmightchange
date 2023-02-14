@@ -25,10 +25,10 @@ namespace CGL {
     if (x < 0 || x >= width) return;
     if (y < 0 || y >= height) return;
 
-    int fbx = floor(x);
-    int fby = floor(y);
+    float fbx = floor(x);
+    float fby = floor(y);
     float offset = 1 / (2 * sqrt(get_sample_rate()));
-    int pixelwidth = floor(sqrt(get_sample_rate()));
+    float pixelwidth = floor(sqrt(get_sample_rate()));
 
     int pixelx = floor((x - fbx - offset) * pixelwidth);
     int pixely = floor((y - fby - offset) * pixelwidth);
@@ -81,10 +81,10 @@ namespace CGL {
     float x2, float y2,
     Color color) {
     // TODO: Task 1: Implement basic triangle rasterization here, no supersampling
-      float minx = min(x0, min(x1, x2));
-      float maxx = max(x0, max(x1, x2));
-      float miny = min(y0, min(y1, y2));
-      float maxy = max(y0, max(y1, y2));
+      float minx = floor(min(x0, min(x1, x2)));
+      float maxx = ceil(max(x0, max(x1, x2)));
+      float miny = floor(min(y0, min(y1, y2)));
+      float maxy = ceil(max(y0, max(y1, y2)));
 
       float offset = 1 / (2 * sqrt(get_sample_rate()));
       float tick = 2 * offset;
@@ -118,7 +118,38 @@ namespace CGL {
   {
     // TODO: Task 4: Rasterize the triangle, calculating barycentric coordinates and using them to interpolate vertex colors across the triangle
     // Hint: You can reuse code from rasterize_triangle
+      float minx = floor(min(x0, min(x1, x2)));
+      float maxx = ceil(max(x0, max(x1, x2)));
+      float miny = floor(min(y0, min(y1, y2)));
+      float maxy = ceil(max(y0, max(y1, y2)));
 
+      float offset = 1 / (2 * sqrt(get_sample_rate()));
+      float tick = 2 * offset;
+
+      for (float x = minx + offset; x < maxx; x += tick) {
+          for (float y = miny + offset; y < maxy; y += tick) {
+
+              Color total = Color(0, 0, 0);
+
+              float w0 = ((-(x - x1) * (y2 - y1)) + ((y - y1) * (x2 - x1))) / ((-(x0 - x1) * (y2 - y1)) + ((y0 - y1) * (x2 - x1)));
+              float w1 = ((-(x - x2) * (y0 - y2)) + ((y - y2) * (x0 - x2))) / ((-(x1 - x2) * (y0 - y2)) + ((y1 - y2) * (x0 - x2)));
+              float w2 = 1 - w0 - w1;
+
+              total = (w0 * c0) + (w1 * c1) + (w2 * c2);
+
+
+              float flag1 = (-(x - x0) * (y1 - y0) + (y - y0) * (x1 - x0));
+              float flag2 = (-(x - x1) * (y2 - y1) + (y - y1) * (x2 - x1));
+              float flag3 = (-(x - x2) * (y0 - y2) + (y - y2) * (x0 - x2));
+
+              if (flag1 >= 0 && flag2 >= 0 && flag3 >= 0) {
+                  fill_pixel(x, y, total);
+              }
+              else if (flag1 <= 0 && flag2 <= 0 && flag3 <= 0) {
+                  fill_pixel(x, y, total);
+              }
+          }
+      }
 
 
   }
@@ -187,7 +218,7 @@ namespace CGL {
                   total += sample_buffer[i];
               }
 
-              Color average = total * (1.0 / (get_sample_rate()));
+              Color average = total;// * (1.0 / (get_sample_rate())); 
               Color col = average;// sample_buffer[(y * width + x) * get_sample_rate()];
 
               for (int k = 0; k < 3; ++k) {

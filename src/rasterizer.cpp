@@ -119,7 +119,7 @@ namespace CGL {
 
     // TODO: Task 2: Update to implement super-sampled rasterization
 
-
+      
 
   }
 
@@ -135,17 +135,17 @@ namespace CGL {
       float miny = floor(min(y0, min(y1, y2)));
       float maxy = ceil(max(y0, max(y1, y2)));
 
-      float offset = 1 / (2 * sqrt(get_sample_rate()));
+      double offset = 1 / (2 * sqrt(get_sample_rate()));
       float tick = 2 * offset;
 
-      for (float x = minx + offset; x < maxx; x += tick) {
-          for (float y = miny + offset; y < maxy; y += tick) {
+      for (double x = minx + offset; x < maxx; x += tick) {
+          for (double y = miny + offset; y < maxy; y += tick) {
 
               Color total = Color(0, 0, 0);
 
-              float w0 = ((-(x - x1) * (y2 - y1)) + ((y - y1) * (x2 - x1))) / ((-(x0 - x1) * (y2 - y1)) + ((y0 - y1) * (x2 - x1)));
-              float w1 = ((-(x - x2) * (y0 - y2)) + ((y - y2) * (x0 - x2))) / ((-(x1 - x2) * (y0 - y2)) + ((y1 - y2) * (x0 - x2)));
-              float w2 = 1 - w0 - w1;
+              double w0 = ((-(x - x1) * (y2 - y1)) + ((y - y1) * (x2 - x1))) / ((-(x0 - x1) * (y2 - y1)) + ((y0 - y1) * (x2 - x1)));
+              double w1 = ((-(x - x2) * (y0 - y2)) + ((y - y2) * (x0 - x2))) / ((-(x1 - x2) * (y0 - y2)) + ((y1 - y2) * (x0 - x2)));
+              double w2 = 1 - w0 - w1;
 
               total = (w0 * c0) + (w1 * c1) + (w2 * c2);
 
@@ -155,10 +155,32 @@ namespace CGL {
               float flag3 = (-(x - x2) * (y0 - y2) + (y - y2) * (x0 - x2));
 
               if (flag1 >= 0 && flag2 >= 0 && flag3 >= 0) {
-                  fill_pixel(x, y, total);
+                  if (x < 0 || x >= width) return;
+                  if (y < 0 || y >= height) return;
+
+                  float fbx = floor(x);
+                  float fby = floor(y);
+                  float offset = 1.0 / (2.0 * sqrt(get_sample_rate()));
+                  double pixelwidth = 1.0 * floor(sqrt(get_sample_rate()));
+
+                  int pixelx = floor((x - fbx - offset) * pixelwidth);
+                  int pixely = floor((y - fby - offset) * pixelwidth);
+
+                  sample_buffer[(fby * width + fbx) * get_sample_rate() + (pixely * pixelwidth) + pixelx] = total;
               }
               else if (flag1 <= 0 && flag2 <= 0 && flag3 <= 0) {
-                  fill_pixel(x, y, total);
+                  if (x < 0 || x >= width) return;
+                  if (y < 0 || y >= height) return;
+
+                  float fbx = floor(x);
+                  float fby = floor(y);
+                  float offset = 1.0 / (2.0 * sqrt(get_sample_rate()));
+                  float pixelwidth = 1.0 * floor(sqrt(get_sample_rate()));
+
+                  int pixelx = floor((x - fbx - offset) * pixelwidth);
+                  int pixely = floor((y - fby - offset) * pixelwidth);
+
+                  sample_buffer[(fby * width + fbx) * get_sample_rate() + (pixely * pixelwidth) + pixelx] = total;
               }
           }
       }
@@ -173,6 +195,75 @@ namespace CGL {
     Texture& tex)
   {
     // TODO: Task 5: Fill in the SampleParams struct and pass it to the tex.sample function.
+      float minx = floor(min(x0, min(x1, x2)));
+      float maxx = ceil(max(x0, max(x1, x2)));
+      float miny = floor(min(y0, min(y1, y2)));
+      float maxy = ceil(max(y0, max(y1, y2)));
+
+      double offset = 1 / (2 * sqrt(get_sample_rate()));
+      float tick = 2 * offset;
+
+      for (double x = minx + offset; x < maxx; x += tick) {
+          for (double y = miny + offset; y < maxy; y += tick) {
+
+              double w0 = ((-(x - x1) * (y2 - y1)) + ((y - y1) * (x2 - x1))) / ((-(x0 - x1) * (y2 - y1)) + ((y0 - y1) * (x2 - x1)));
+              double w1 = ((-(x - x2) * (y0 - y2)) + ((y - y2) * (x0 - x2))) / ((-(x1 - x2) * (y0 - y2)) + ((y1 - y2) * (x0 - x2)));
+              double w2 = 1 - w0 - w1;
+
+              float u = (w0 * u0) + (w1 * u1) + (w2 * u2);
+              float v = (w0 * v0) + (w1 * v1) + (w2 * v2);
+
+              Color c = Color(0, 0, 0);
+
+              float flag1 = (-(x - x0) * (y1 - y0) + (y - y0) * (x1 - x0));
+              float flag2 = (-(x - x1) * (y2 - y1) + (y - y1) * (x2 - x1));
+              float flag3 = (-(x - x2) * (y0 - y2) + (y - y2) * (x0 - x2));
+
+              if (flag1 >= 0 && flag2 >= 0 && flag3 >= 0) {
+                  if (psm == P_NEAREST) {
+                      c = tex.sample_nearest(Vector2D(u, v), 0);
+                  }
+                  else if (psm == P_LINEAR) {
+                      c = tex.sample_bilinear(Vector2D(u, v), 0);
+                  }
+
+                  if (x < 0 || x >= width) return;
+                  if (y < 0 || y >= height) return;
+
+                  float fbx = floor(x);
+                  float fby = floor(y);
+                  float offset = 1.0 / (2.0 * sqrt(get_sample_rate()));
+                  float pixelwidth = 1.0 * floor(sqrt(get_sample_rate()));
+
+                  int pixelx = floor((x - fbx - offset) * pixelwidth);
+                  int pixely = floor((y - fby - offset) * pixelwidth);
+
+                  sample_buffer[(fby * width + fbx) * get_sample_rate() + (pixely * pixelwidth) + pixelx] = c;
+              }
+              else if (flag1 <= 0 && flag2 <= 0 && flag3 <= 0) {
+                  if (psm == P_NEAREST) {
+                      c = tex.sample_nearest(Vector2D(u, v), 0);
+                  }
+                  else if (psm == P_LINEAR) {
+                      c = tex.sample_bilinear(Vector2D(u, v), 0);
+                  }
+
+                  if (x < 0 || x >= width) return;
+                  if (y < 0 || y >= height) return;
+
+                  float fbx = floor(x);
+                  float fby = floor(y);
+                  float offset = 1.0 / (2.0 * sqrt(get_sample_rate()));
+                  float pixelwidth = 1.0 * floor(sqrt(get_sample_rate()));
+
+                  int pixelx = floor((x - fbx - offset) * pixelwidth);
+                  int pixely = floor((y - fby - offset) * pixelwidth);
+
+                  sample_buffer[(fby * width + fbx) * get_sample_rate() + (pixely * pixelwidth) + pixelx] = c;
+              }
+          }
+      }
+
     // TODO: Task 6: Set the correct barycentric differentials in the SampleParams struct.
     // Hint: You can reuse code from rasterize_triangle/rasterize_interpolated_color_triangle
 

@@ -29,9 +29,17 @@ namespace CGL {
   Color Texture::sample_nearest(Vector2D uv, int level) {
     // TODO: Task 5: Fill this in.
     auto& mip = mipmap[level];
+    float u = uv.x * mip.width;
+    float v = uv.y * mip.height;
 
+    if (int(ceil(u)) >= mip.width) {
+        return Color(1, 1, 1);
+    }
+    if (int(ceil(v)) >= mip.height) {
+        return Color(1, 1, 1);
+    }
 
-
+    return mip.get_texel(round(u), round(v));
 
     // return magenta for invalid level
     return Color(1, 0, 1);
@@ -41,8 +49,24 @@ namespace CGL {
     // TODO: Task 5: Fill this in.
     auto& mip = mipmap[level];
 
+    float u = uv.x * mip.width;
+    float v = uv.y * mip.height;
 
+    if (int(ceil(u)) >= mip.width) {
+        return Color(1, 1, 1);
+    }
+    if (int(ceil(v)) >= mip.height) {
+        return Color(1, 1, 1);
+    }
 
+    int left = floor(u);
+    int top = floor(v);
+
+    Color topHalf = (u - left) * mip.get_texel(left + 1, top) + (left + 1 - u) * mip.get_texel(left, top);
+    Color bottomHalf = (u - left) * mip.get_texel(left + 1, top+1) + (left + 1 - u) * mip.get_texel(left, top+1);
+
+    Color out = (v - top) * bottomHalf + (top + 1 - v) * topHalf;
+    return out;
 
     // return magenta for invalid level
     return Color(1, 0, 1);

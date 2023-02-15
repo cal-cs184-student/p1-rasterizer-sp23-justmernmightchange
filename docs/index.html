@@ -23,9 +23,9 @@
 
 <body>
 
-<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2023</h1>
 <h1 align="middle">Project 1: Rasterizer</h1>
-<h2 align="middle">YOUR NAME, CS184-??</h2>
+<h2 align="middle">Parth Mahawar, Shawn Zhao</h2>
 
 <br><br>
 
@@ -38,8 +38,20 @@
 
 <h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
 
-<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
+<p>
+  For this task, we are given 3 points p1 = (x0, y0), p2 = (x1, y1), and p3 = (x2, y2), and our goal is to rasterize the triangle with these points as the corners. To do this, we took the minimum x, maximum x, minimum y, and maximum y, to form the bounding box of our relevant points. To avoid rounding the bounding boxes inwards, leading to edges of triangles not filling properly, we applied the floor function to the minimum x and y, and the ceiling function to the maximum x and y.Then, we iterated through each point in this set of relevant points and performed the line test on each of the lines formed by two of the corners. To make sure that our code worked regardless of the winding order of the vertices inputted, we made sure to represent our lines in a cyclic order with respect to the argument vertices (e.g. p2-p1, p3-p2, p1-p3). This ensures that the inside of the triangle would be on the same side of each line (left or right in this 2D example), and thus allows us to check if the result of the 3 line tests of a point are all nonnegative or nonpositive to see if a point is inside a triangle. If the result of the 3 line tests are not all nonnegative or nonpositive, then this point lies on the different side of the line for one line compared to the other two, and therefore we know it is not inside the triangle. We made sure to include 0 as an acceptable result of the line tests in both cases because a result of 0 implies the point is on the edge of the triangle, and samples on the boundaries of triangles were to be drawn.
+  <br>
+  <br>
+  With all this in place, we performed the 3 line tests on each point in and along the the edges of the bounding box that had x and y coordinates of an integer + 0.5, which represents the center of each pixel, to test if the point was in the triangle. If it was, we fill the pixel with the color the triangle is meant to be. One of our results is shown below:
+</p>
 
+<figure align="middle" width="600px">
+  <img src="images/task1_img.png" align="middle" width="600px"/>
+  <figcaption align="middle" width="600px">Our rendered image of basic/test4.svg with the default viewing parameters. This method is naive and still contains aliasing, which we can see with the pixel inspector, as there is a gap of empty pixels between the body of the triangle and its corner.</figcaption>
+</figure>
+
+<!--
+Table example
 <div align="middle">
   <table style="width=100%">
     <tr>
@@ -65,19 +77,31 @@
     </tr>
   </table>
 </div>
+-->
 
-
+<br>
 <h3 align="middle">Part 2: Antialiasing triangles</h3>
+In our example shown in Part 1, we noticed that there was still some aliasing. One way we can try and mitigate this is through supersampling. In supersampling, instead of sampling the middle of the pixel to determine whether or not to color that pixel, we sample at sampling_rate evenly distributed supersamples within the pixel. Supersampling is useful as a form of antialiasing because sampling a pixel multiple times will give a more accurate judgement of the color it is supposed to take on, as there is a chance that sampling only the center of a pixel will cause it to not be colored if the pixel contains the border of the ideal triangle, but by sampling multiple times, our samples are much less likely to "miss" and should result in much smoother edges.
+<br>
+<br>
+In our algorithm, we first recalculate the offset for x and y, since our offset is now 1/sqrt(sampling_rate), and now our x and y increments by 2/sqrt(sampling rate). We can extend our algorithm from part 1, where we perform the 3 line tests on each of the supersamples of each of the pixels within the bounding box to determine whether or not the supersample lies within the triangle and the corresponding color needs to be applied. However, in this case, instead of directly coloring the pixel based on the result, we add the corresponding color to a sample buffer at the index that corresponds to the index of the sample if the supersampled were to be flattened, e.g. the first sampling_rate indices of the sample buffer correspond to the samples taken from the first pixel, the second sampling_rate indices of the sample buffer correspond to the samples taken from the second pixel, etc.
+<br>
+<br>
+After we have completed these line tests for every supersample of each pixel in the bounding box, we go back and fill the pixels with the results of our sampling buffer. For each pixel, we receive the sampling_rate colors stored in the sample buffer that were associated with this pixel, average the colors, and assign that pixel the value of that average.
 
-
-
+<br>
 <h3 align="middle">Part 3: Transforms</h3>
+In this part, we allowed for transforms of shapes using homogeneous matrices. As an example, we transform a red square into various different body parts of a red robot doing jumping jacks:
+<figure align="middle" width="600px">
+  <img src="images/task3_myrobot.png" align="middle" width="600px"/>
+  <figcaption align="middle" width="600px">A robot doing jumping jacks</figcaption>
+</figure>
 
 
-
+<br>
 <h2 align="middle">Section II: Sampling</h2>
-
 <h3 align="middle">Part 4: Barycentric coordinates</h3>
+
 
 
 <h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>

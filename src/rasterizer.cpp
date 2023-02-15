@@ -21,19 +21,9 @@ namespace CGL {
     // TODO: Task 2: You might need to this function to fix points and lines (such as the black rectangle border in test4.svg)
     // NOTE: You are not required to implement proper supersampling for points and lines
     // It is sufficient to use the same color for all supersamples of a pixel for points and lines (not triangles)
-
-    if (x < 0 || x >= width) return;
-    if (y < 0 || y >= height) return;
-
-    float fbx = floor(x);
-    float fby = floor(y);
-    float offset = 1 / (2 * sqrt(get_sample_rate()));
-    float pixelwidth = floor(sqrt(get_sample_rate()));
-
-    int pixelx = floor((x - fbx - offset) * pixelwidth);
-    int pixely = floor((y - fby - offset) * pixelwidth);
-
-    sample_buffer[(fby * width + fbx)*get_sample_rate() + (pixely*pixelwidth) + pixelx] = c;
+      for (int i = 0; i < get_sample_rate(); i++){
+          sample_buffer[(y * width + x) * get_sample_rate() + i] = c;
+      }
   }
 
   // Rasterize a point: simple example to help you start familiarizing
@@ -86,21 +76,43 @@ namespace CGL {
       float miny = floor(min(y0, min(y1, y2)));
       float maxy = ceil(max(y0, max(y1, y2)));
 
-      float offset = 1 / (2 * sqrt(get_sample_rate()));
-      float tick = 2 * offset;
+      double offset = 1.0 / (2 * sqrt(get_sample_rate()));
+      float tick = 2.0 * offset;
 
-      for (float x = minx+offset; x < maxx; x+=tick) {
-          for (float y = miny+offset; y < maxy; y+=tick) {
+      for (double x = minx+offset; x < maxx; x+=tick) {
+          for (double y = miny+offset; y < maxy; y+=tick) {
 
               float flag1 = (-(x - x0) * (y1 - y0) + (y - y0) * (x1 - x0));
               float flag2 = (-(x - x1) * (y2 - y1) + (y - y1) * (x2 - x1));
               float flag3 = (-(x - x2) * (y0 - y2) + (y - y2) * (x0 - x2));
 
               if (flag1 >= 0 && flag2 >= 0 && flag3 >= 0) {
-                  fill_pixel(x, y, color);
+                  if (x < 0 || x >= width) return;
+                  if (y < 0 || y >= height) return;
+
+                  float fbx = floor(x);
+                  float fby = floor(y);
+                  float offset = 1.0 / (2.0 * sqrt(get_sample_rate()));
+                  float pixelwidth = 1.0 * floor(sqrt(get_sample_rate()));
+
+                  int pixelx = floor((x - fbx - offset) * pixelwidth);
+                  int pixely = floor((y - fby - offset) * pixelwidth);
+
+                  sample_buffer[(fby * width + fbx) * get_sample_rate() + (pixely * pixelwidth) + pixelx] = color;
               }
               else if (flag1 <= 0 && flag2 <= 0 && flag3 <= 0) {
-                  fill_pixel(x, y, color);
+                  if (x < 0 || x >= width) return;
+                  if (y < 0 || y >= height) return;
+
+                  float fbx = floor(x);
+                  float fby = floor(y);
+                  float offset = 1.0 / (2.0 * sqrt(get_sample_rate()));
+                  float pixelwidth = 1.0 * floor(sqrt(get_sample_rate()));
+
+                  int pixelx = floor((x - fbx - offset) * pixelwidth);
+                  int pixely = floor((y - fby - offset) * pixelwidth);
+
+                  sample_buffer[(fby * width + fbx) * get_sample_rate() + (pixely * pixelwidth) + pixelx] = color;
               }
           }
       }
@@ -218,7 +230,7 @@ namespace CGL {
                   total += sample_buffer[i];
               }
 
-              Color average = total;// * (1.0 / (get_sample_rate())); 
+              Color average = total *(1.0 / (get_sample_rate()));
               Color col = average;// sample_buffer[(y * width + x) * get_sample_rate()];
 
               for (int k = 0; k < 3; ++k) {

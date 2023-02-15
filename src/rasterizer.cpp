@@ -67,26 +67,30 @@ namespace CGL {
 
   // Rasterize a triangle.
   void RasterizerImp::rasterize_triangle(float x0, float y0,
-    float x1, float y1,
-    float x2, float y2,
-    Color color) {
-    // TODO: Task 1: Implement basic triangle rasterization here, no supersampling
-      float minx = min(x0, min(x1, x2));
-      float maxx = max(x0, max(x1, x2));
-      float miny = min(y0, min(y1, y2));
-      float maxy = max(y0, max(y1, y2));
+                                         float x1, float y1,
+                                         float x2, float y2,
+                                         Color color) {
+      // TODO: Task 1: Implement basic triangle rasterization here, no supersampling
+      float minx = floor(min(x0, min(x1, x2)));
+      float maxx = ceil(max(x0, max(x1, x2)));
+      float miny = floor(min(y0, min(y1, y2)));
+      float maxy = ceil(max(y0, max(y1, y2)));
 
-      for (float x = minx+0.5; x < maxx; x++) {
-          for (float y = miny+0.5; y < maxy; y++) {
+      float offset = 1 / (2 * sqrt(get_sample_rate()));
+      float tick = 2 * offset;
+
+      for (float x = minx+offset; x < maxx; x+=tick) {
+          for (float y = miny+offset; y < maxy; y+=tick) {
+
               float flag1 = (-(x - x0) * (y1 - y0) + (y - y0) * (x1 - x0));
               float flag2 = (-(x - x1) * (y2 - y1) + (y - y1) * (x2 - x1));
               float flag3 = (-(x - x2) * (y0 - y2) + (y - y2) * (x0 - x2));
 
               if (flag1 >= 0 && flag2 >= 0 && flag3 >= 0) {
-                  rasterize_point(x, y, color);
+                  fill_pixel(x, y, color);
               }
               else if (flag1 <= 0 && flag2 <= 0 && flag3 <= 0) {
-                  rasterize_point(x, y, color);
+                  fill_pixel(x, y, color);
               }
           }
       }

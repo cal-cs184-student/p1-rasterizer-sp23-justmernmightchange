@@ -8,7 +8,37 @@ namespace CGL {
 
   Color Texture::sample(const SampleParams& sp) {
     // TODO: Task 6: Fill this in.
+      if (sp.lsm == L_ZERO) {
+          if (sp.psm == P_NEAREST) {
+              return sample_nearest(sp.p_uv, 0);
+          }
+          else {
+              return sample_bilinear(sp.p_uv, 0);
+          }
+      }
+      float level = get_level(sp);
+      if (sp.lsm == L_NEAREST) {
+          if (sp.psm == P_NEAREST) {
+              return sample_nearest(sp.p_uv, int(round(level)));
+          }
+          else {
+              return sample_bilinear(sp.p_uv, int(round(level)));
+          }
+      }
 
+      Color ceilSample = Color(0, 0, 0);
+      Color floorSample = Color(0, 0, 0);
+      
+      if (sp.psm == P_NEAREST) {
+          ceilSample = sample_nearest(sp.p_uv, int(ceil(level)));
+          floorSample = sample_nearest(sp.p_uv, int(floor(level)));
+      }
+      else {
+          ceilSample = sample_bilinear(sp.p_uv, int(ceil(level)));
+          floorSample = sample_bilinear(sp.p_uv, int(floor(level)));
+      }
+
+      return (ceil(level) - level) * floorSample + (level - floor(level)) * ceilSample;
 
 // return magenta for invalid level
     return Color(1, 0, 1);
@@ -16,10 +46,14 @@ namespace CGL {
 
   float Texture::get_level(const SampleParams& sp) {
     // TODO: Task 6: Fill this in.
+      Vector2D diffx = sp.p_dx_uv - sp.p_uv;
+      Vector2D diffy = sp.p_dy_uv - sp.p_uv;
 
+      diffx *= width;
+      diffy *= height;
 
-
-    return 0;
+      float L = max(diffx.norm(), diffy.norm());
+      return log2(L);
   }
 
   Color MipLevel::get_texel(int tx, int ty) {
@@ -28,6 +62,9 @@ namespace CGL {
 
   Color Texture::sample_nearest(Vector2D uv, int level) {
     // TODO: Task 5: Fill this in.
+    if (level == mipmap.size()) {
+        level = mipmap.size()-1;
+    }
     auto& mip = mipmap[level];
     float u = uv.x * mip.width;
     float v = uv.y * mip.height;
@@ -47,6 +84,9 @@ namespace CGL {
 
   Color Texture::sample_bilinear(Vector2D uv, int level) {
     // TODO: Task 5: Fill this in.
+      if (level == mipmap.size()) {
+          level = mipmap.size()-1;
+      }
     auto& mip = mipmap[level];
 
     float u = uv.x * mip.width;

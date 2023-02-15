@@ -145,7 +145,7 @@ namespace CGL {
 
               double w0 = ((-(x - x1) * (y2 - y1)) + ((y - y1) * (x2 - x1))) / ((-(x0 - x1) * (y2 - y1)) + ((y0 - y1) * (x2 - x1)));
               double w1 = ((-(x - x2) * (y0 - y2)) + ((y - y2) * (x0 - x2))) / ((-(x1 - x2) * (y0 - y2)) + ((y1 - y2) * (x0 - x2)));
-              double w2 = 1 - w0 - w1;
+              double w2 = 1.0 - w0 - w1;
 
               total = (w0 * c0) + (w1 * c1) + (w2 * c2);
 
@@ -202,16 +202,41 @@ namespace CGL {
 
       double offset = 1 / (2 * sqrt(get_sample_rate()));
       float tick = 2 * offset;
+      
+      int level = 0;
+      SampleParams sp = SampleParams();
+      sp.lsm = lsm;
+      sp.psm = psm;
 
       for (double x = minx + offset; x < maxx; x += tick) {
           for (double y = miny + offset; y < maxy; y += tick) {
 
               double w0 = ((-(x - x1) * (y2 - y1)) + ((y - y1) * (x2 - x1))) / ((-(x0 - x1) * (y2 - y1)) + ((y0 - y1) * (x2 - x1)));
               double w1 = ((-(x - x2) * (y0 - y2)) + ((y - y2) * (x0 - x2))) / ((-(x1 - x2) * (y0 - y2)) + ((y1 - y2) * (x0 - x2)));
-              double w2 = 1 - w0 - w1;
+              double w2 = 1.0 - w0 - w1;
 
               float u = (w0 * u0) + (w1 * u1) + (w2 * u2);
               float v = (w0 * v0) + (w1 * v1) + (w2 * v2);
+
+              sp.p_uv = Vector2D(u, v);
+
+              double dxw0 = ((-((x+1) - x1) * (y2 - y1)) + ((y - y1) * (x2 - x1))) / ((-(x0 - x1) * (y2 - y1)) + ((y0 - y1) * (x2 - x1)));
+              double dxw1 = ((-(x + 1 - x2) * (y0 - y2)) + ((y - y2) * (x0 - x2))) / ((-(x1 - x2) * (y0 - y2)) + ((y1 - y2) * (x0 - x2)));
+              double dxw2 = 1.0 - dxw0 - dxw1;
+
+              float dxu = (dxw0 * u0) + (dxw1 * u1) + (dxw2 * u2);
+              float dxv = (dxw0 * v0) + (dxw1 * v1) + (dxw2 * v2);
+
+              sp.p_dx_uv = Vector2D(dxu, dxv);
+
+              double dyw0 = ((-(x - x1) * (y2 - y1)) + ((y + 1 - y1) * (x2 - x1))) / ((-(x0 - x1) * (y2 - y1)) + ((y0 - y1) * (x2 - x1)));
+              double dyw1 = ((-(x - x2) * (y0 - y2)) + ((y + 1 - y2) * (x0 - x2))) / ((-(x1 - x2) * (y0 - y2)) + ((y1 - y2) * (x0 - x2)));
+              double dyw2 = 1.0 - w0 - w1;
+
+              float dyu = (w0 * u0) + (w1 * u1) + (w2 * u2);
+              float dyv = (w0 * v0) + (w1 * v1) + (w2 * v2);
+
+              sp.p_dy_uv = Vector2D(dyu, dyv);
 
               Color c = Color(0, 0, 0);
 
@@ -220,12 +245,8 @@ namespace CGL {
               float flag3 = (-(x - x2) * (y0 - y2) + (y - y2) * (x0 - x2));
 
               if (flag1 >= 0 && flag2 >= 0 && flag3 >= 0) {
-                  if (psm == P_NEAREST) {
-                      c = tex.sample_nearest(Vector2D(u, v), 0);
-                  }
-                  else if (psm == P_LINEAR) {
-                      c = tex.sample_bilinear(Vector2D(u, v), 0);
-                  }
+
+                  c = tex.sample(sp);
 
                   if (x < 0 || x >= width) return;
                   if (y < 0 || y >= height) return;
@@ -241,12 +262,14 @@ namespace CGL {
                   sample_buffer[(fby * width + fbx) * get_sample_rate() + (pixely * pixelwidth) + pixelx] = c;
               }
               else if (flag1 <= 0 && flag2 <= 0 && flag3 <= 0) {
-                  if (psm == P_NEAREST) {
+                  /*if (psm == P_NEAREST) {
                       c = tex.sample_nearest(Vector2D(u, v), 0);
                   }
                   else if (psm == P_LINEAR) {
                       c = tex.sample_bilinear(Vector2D(u, v), 0);
-                  }
+                  }*/
+
+                  c = tex.sample(sp);
 
                   if (x < 0 || x >= width) return;
                   if (y < 0 || y >= height) return;
